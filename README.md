@@ -7,14 +7,16 @@ DocChat AI is a web application that allows users to upload PDF documents and ch
 - Upload PDF documents
 - AI-powered chat interface for document queries
 - User-friendly web interface
-- Support for multiple document formats (PDF)
 
 ## Tech Stack
 
-- **Backend**: Python, Flask
-- **Frontend**: HTML, CSS, JavaScript
-- **AI/ML**: Integrated AI models for natural language processing
-- **Database**: File-based storage for uploads
+- Python 3.10+
+- Flask
+- LangChain
+- GPT4All (local model)
+- FAISS (vector similarity search)
+- HuggingFace Sentence Transformers
+- HTML, CSS, JavaScript
 
 ## Installation
 
