@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat with PDF Notes</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>📘 Chat with PDF Notes system using Python Flask</h1>
+    </header>
+
+    <main class="container">
+      <div class="left-pane">
+        <h2>📄 PDF Preview</h2>
+        <input type="file" id="pdfInput" accept=".pdf" />
+        <div class="status" id="pdfStatus">No file selected</div>
+        <iframe
+          id="pdfViewer"
+          width="100%"
+          height="90%"
+          style="border: 1px solid #ccc"
+        ></iframe>
+      </div>
+
+      <div class="right-pane">
+        <h2>💬 Chat with Your PDF</h2>
+        <div class="chat-box" id="chatBox"></div>
+
+        <div class="chat-input">
+          <input type="text" id="userInput" placeholder="Ask your PDF..." />
+          <button onclick="sendMessage()">Send</button>
+          <button onclick="clearChat()">🗑️ Clear</button>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const chatBox = document.getElementById("chatBox");
+      const pdfStatus = document.getElementById("pdfStatus");
+      let uploadedFilename = "";
+
+      document
+        .getElementById("pdfInput")
+        .addEventListener("change", async function () {
+          const file = this.files[0];
+          if (!file) return;
+
+          pdfStatus.textContent = "📄 Uploading and processing PDF...";
+
+          const formData = new FormData();
+          formData.append("pdf", file);
+
+          try {
+            const response = await fetch("/upload", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              uploadedFilename = data.filename;
+              document.getElementById("pdfViewer").src =
+                `/uploads/${uploadedFilename}`;
+              pdfStatus.textContent = "✅ PDF uploaded and ready!";
+            } else {
+              pdfStatus.textContent = "❌ Upload failed.";
+            }
+          } catch (err) {
+            pdfStatus.textContent = "❌ Server error during upload.";
+          }
+        });
+
+      async function sendMessage() {
+        const input = document.getElementById("userInput");
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        chatBox.innerHTML += `<div class='msg user'>🧑‍💻 ${msg}</div>`;
+        input.value = "";
+
+        const thinkingDiv = document.createElement("div");
+        thinkingDiv.className = "msg bot";
+        thinkingDiv.id = "thinking";
+        thinkingDiv.textContent = "🤔 Thinking";
+        chatBox.appendChild(thinkingDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        let dotCount = 0;
+        const thinkingInterval = setInterval(() => {
+          dotCount = (dotCount + 1) % 4;
+          thinkingDiv.textContent = "🤔 Thinking" + ".".repeat(dotCount);
+        }, 500);
+
+        try {
+          const response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg }),
+          });
+
+          clearInterval(thinkingInterval);
+          document.getElementById("thinking")?.remove();
+
+          const data = await response.json();
+          if (response.ok) {
+            const botMsg = document.createElement("div");
+            botMsg.className = "msg bot";
+            botMsg.textContent = "🤖 ";
+            chatBox.appendChild(botMsg);
+
+            let i = 0;
+            const text = data.response;
+            function typeNextChar() {
+              if (i < text.length) {
+                botMsg.textContent += text[i++];
+                setTimeout(typeNextChar, 15); // Typing speed
+              }
+            }
+            typeNextChar();
+          } else {
+            chatBox.innerHTML += `<div class='msg bot error'>⚠️ ${data.response}</div>`;
+          }
+        } catch (err) {
+          clearInterval(thinkingInterval);
+          document.getElementById("thinking")?.remove();
+          chatBox.innerHTML += `<div class='msg bot error'>⚠️ Server error occurred.</div>`;
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function clearChat() {
+        chatBox.innerHTML = "";
+      }
+    </script>
+  </body>
+</html>
